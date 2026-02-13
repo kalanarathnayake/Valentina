@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -13,26 +13,25 @@ import { CommonModule } from '@angular/common';
       
       <div class="content fade-in">
         <h2 class="romantic-text message">Okay Babu…</h2>
-        <p class="sub-message">You remember us too well 🥹❤️</p>
+        <p class="sub-message">You remember us too well 😉❤️</p>
         <p class="sub-message">One last thing…</p>
 
-        <div class="interaction-container">
-          <!-- Hold Button Option -->
-          <div class="option-section">
-            <p class="instruction">Hold this button for 10 seconds</p>
-            <button 
-              class="romantic-button hold-button"
-              (mousedown)="startHolding()"
-              (mouseup)="stopHolding()"
-              (mouseleave)="stopHolding()"
-              (touchstart)="startHolding()"
-              (touchend)="stopHolding()"
-              [disabled]="unlocked">
-              {{ getHoldButtonText() }}
-            </button>
-            <div class="progress-bar" *ngIf="isHolding">
-              <div class="progress-fill" [style.width.%]="holdProgress"></div>
-            </div>
+        <!-- Glassmorphism Panel -->
+        <div class="glass-panel">
+          <p class="instruction">Hold this button for 10 seconds</p>
+          <button 
+            class="romantic-button hold-button"
+            (mousedown)="startHolding($event)"
+            (mouseup)="stopHolding()"
+            (mouseleave)="stopHolding()"
+            (touchstart)="startHolding($event)"
+            (touchend)="stopHolding()"
+            (touchcancel)="stopHolding()"
+            [disabled]="unlocked">
+            {{ getHoldButtonText() }}
+          </button>
+          <div class="progress-bar" *ngIf="isHolding">
+            <div class="progress-fill" [style.width.%]="holdProgress"></div>
           </div>
         </div>
 
@@ -47,6 +46,27 @@ import { CommonModule } from '@angular/common';
       <div class="hearts-container" *ngIf="unlocked">
         <span *ngFor="let heart of hearts" class="heart-particle" [style.left.%]="heart.left" [style.animation-delay.s]="heart.delay">💕</span>
       </div>
+
+      <!-- Static scattered hearts and sparkles -->
+      <div class="decorative-hearts">
+        <span *ngFor="let heart of staticHearts" 
+              class="static-heart"
+              [style.left.%]="heart.left"
+              [style.top.%]="heart.top"
+              [style.font-size.px]="heart.size"
+              [style.opacity]="heart.opacity">
+          {{ heart.emoji }}
+        </span>
+      </div>
+      <div class="sparkles">
+        <span *ngFor="let sparkle of sparkles" 
+              class="sparkle"
+              [style.left.%]="sparkle.left"
+              [style.top.%]="sparkle.top"
+              [style.animation-delay.s]="sparkle.delay">
+          ✨
+        </span>
+      </div>
     </div>
   `,
   styles: [`
@@ -54,18 +74,11 @@ import { CommonModule } from '@angular/common';
       position: relative;
       overflow: hidden;
       min-height: 100vh;
-      background: linear-gradient(135deg, #ffe0ec 0%, #ffc0d9 50%, #ff9ec5 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 12s ease infinite;
+      background: linear-gradient(180deg, #ffe0ec 0%, #ffc0d9 50%, #ff9ec5 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 40px 20px;
-    }
-
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
     }
 
     .content {
@@ -115,12 +128,39 @@ import { CommonModule } from '@angular/common';
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .interaction-container {
-      margin: 40px 0;
+    /* Glassmorphism Panel */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 24px;
+      padding: 40px 30px;
+      margin: 30px 0;
+      box-shadow: 
+        0 8px 32px rgba(255, 105, 135, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 182, 193, 0.4);
+      position: relative;
     }
 
-    .option-section {
-      margin: 30px 0;
+    .glass-panel::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 182, 193, 0.3),
+        rgba(255, 192, 203, 0.2),
+        rgba(255, 160, 180, 0.3)
+      );
+      border-radius: 24px;
+      z-index: -1;
+      opacity: 0.6;
+      filter: blur(15px);
     }
 
     .instruction {
@@ -133,12 +173,19 @@ import { CommonModule } from '@angular/common';
     .hold-button {
       width: 100%;
       max-width: 320px;
-      margin: 0 auto;
+      margin: 20px auto 0;
       display: block;
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 8px 25px rgba(255, 107, 157, 0.4);
+      box-shadow: 
+        0 8px 25px rgba(255, 107, 157, 0.5),
+        0 0 20px rgba(255, 182, 193, 0.4);
       position: relative;
       overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 50%, #ffb3c1 100%);
     }
 
     .hold-button::before {
@@ -168,15 +215,21 @@ import { CommonModule } from '@angular/common';
     .hold-button:disabled {
       opacity: 0.8;
       cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .hold-button:not(:disabled) {
+      pointer-events: auto;
+      cursor: pointer;
     }
 
     .progress-bar {
       width: 100%;
       max-width: 320px;
-      height: 12px;
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 15px;
-      margin: 20px auto;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 10px;
+      margin: 15px auto 0;
       overflow: hidden;
       box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
       position: relative;
@@ -184,12 +237,12 @@ import { CommonModule } from '@angular/common';
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary-red), var(--primary-pink), var(--primary-red));
+      background: linear-gradient(90deg, #ff6b9d, #ff8fab, #ffb3c1);
       background-size: 200% 100%;
-      border-radius: 15px;
+      border-radius: 10px;
       transition: width 0.1s linear;
       animation: progressShine 2s linear infinite;
-      box-shadow: 0 0 15px rgba(255, 107, 157, 0.6);
+      box-shadow: 0 0 10px rgba(255, 107, 157, 0.6);
       position: relative;
     }
 
@@ -216,10 +269,13 @@ import { CommonModule } from '@angular/common';
 
 
     .reveal-button {
-      margin-top: 40px;
+      margin-top: 30px;
       animation: revealPulse 2s ease-in-out infinite;
-      box-shadow: 0 10px 30px rgba(255, 107, 157, 0.5);
+      box-shadow: 
+        0 10px 30px rgba(255, 107, 157, 0.5),
+        0 0 20px rgba(255, 182, 193, 0.4);
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 50%, #ffb3c1 100%);
     }
 
     @keyframes revealPulse {
@@ -265,6 +321,54 @@ import { CommonModule } from '@angular/common';
       }
     }
 
+    /* Static Decorative Hearts */
+    .decorative-hearts {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .static-heart {
+      position: absolute;
+      opacity: 0.3;
+      filter: drop-shadow(0 2px 8px rgba(255, 105, 135, 0.2));
+    }
+
+    /* Sparkles */
+    .sparkles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 16px;
+      opacity: 0.6;
+      animation: sparkleTwinkle 3s ease-in-out infinite;
+    }
+
+    @keyframes sparkleTwinkle {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.2);
+      }
+    }
+
     @media (max-width: 768px) {
       .message {
         font-size: 28px;
@@ -291,6 +395,22 @@ export class FinalLockComponent implements OnInit, OnDestroy {
   holdInterval: any;
   unlocked = false;
   hearts: Array<{ left: number; delay: number }> = [];
+  
+  // Static decorative hearts
+  staticHearts: Array<{
+    emoji: string;
+    left: number;
+    top: number;
+    size: number;
+    opacity: number;
+  }> = [];
+
+  // Sparkles
+  sparkles: Array<{
+    left: number;
+    top: number;
+    delay: number;
+  }> = [];
 
   ngOnInit() {
     // Create heart particles
@@ -300,6 +420,10 @@ export class FinalLockComponent implements OnInit, OnDestroy {
         delay: Math.random() * 2
       });
     }
+    
+    // Create static decorative hearts and sparkles
+    this.createStaticHearts();
+    this.createSparkles();
     
     // Check if music was playing from quiz (stored in sessionStorage)
     const wasPlaying = sessionStorage.getItem('musicPlaying') === 'true';
@@ -327,7 +451,10 @@ export class FinalLockComponent implements OnInit, OnDestroy {
   }
   
   // Ensure music continues when user interacts
-  startHolding() {
+  startHolding(event: Event) {
+    // Prevent default to avoid issues on mobile
+    event.preventDefault();
+    
     // Try to play music if it was blocked
     if (this.musicPlaying && this.backgroundMusic?.nativeElement) {
       const audio = this.backgroundMusic.nativeElement;
@@ -336,15 +463,23 @@ export class FinalLockComponent implements OnInit, OnDestroy {
       }
     }
     
-    if (this.unlocked) return;
+    if (this.unlocked || this.isHolding) return;
     
     this.isHolding = true;
     this.holdProgress = 0;
     
+    // Clear any existing interval
+    if (this.holdInterval) {
+      clearInterval(this.holdInterval);
+    }
+    
     this.holdInterval = setInterval(() => {
-      this.holdProgress += 1;
-      if (this.holdProgress >= 100) {
-        this.unlock();
+      if (this.isHolding && !this.unlocked) {
+        this.holdProgress += 1;
+        this.cdr.detectChanges(); // Force change detection
+        if (this.holdProgress >= 100) {
+          this.unlock();
+        }
       }
     }, 100);
   }
@@ -395,5 +530,32 @@ export class FinalLockComponent implements OnInit, OnDestroy {
     this.router.navigate(['/valentine-question']);
   }
 
-  constructor(private router: Router) {}
+  createStaticHearts() {
+    const heartEmojis = ['❤️', '💕', '💖', '💗', '💝', '💘', '💞', '💓'];
+    const heartCount = 25;
+    
+    for (let i = 0; i < heartCount; i++) {
+      this.staticHearts.push({
+        emoji: heartEmojis[Math.floor(Math.random() * heartEmojis.length)],
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size: 20 + Math.random() * 25, // 20-45px
+        opacity: 0.2 + Math.random() * 0.4 // 0.2-0.6
+      });
+    }
+  }
+
+  createSparkles() {
+    const sparkleCount = 15;
+    
+    for (let i = 0; i < sparkleCount; i++) {
+      this.sparkles.push({
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 3
+      });
+    }
+  }
+
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
 }

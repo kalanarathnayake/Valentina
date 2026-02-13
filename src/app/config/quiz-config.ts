@@ -88,15 +88,15 @@ export const QUIZ_CONFIG: QuizConfig = {
       romanticMessage: 'I can already imagine us there… together ❤️'
     },
     {
-      question: 'The best gift you ever gave me is ________.',
-      type: 'fill-blank',
-      correctAnswer: '', // Will be set by user
-      romanticMessage: 'That gift still means more to me than you know 🥹'
-    },
-    {
       question: 'How many kids do you want with me? 👶❤️',
-      type: 'fill-blank',
-      correctAnswer: '', // Will be set by user
+      type: 'mcq',
+      options: [
+        '😌 One… so we can spoil them',
+        '😍 Two… one like you, one like me',
+        '😂 Three… chaos but cute',
+        '🤭 However many you want'
+      ],
+      correctAnswer: '😍 Two… one like you, one like me',
       romanticMessage: 'That future sounds perfect with you 🥹'
     },
     {

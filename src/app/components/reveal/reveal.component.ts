@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { trigger, transition, style, animate } from '@angular/animations';
 // @ts-ignore - heic2any doesn't have TypeScript definitions
 import heic2any from 'heic2any';
 
@@ -7,82 +8,102 @@ import heic2any from 'heic2any';
   selector: 'app-reveal',
   standalone: true,
   imports: [CommonModule],
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(30px)' }),
+        animate('1.2s ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ],
   template: `
     <div class="container" [style.background-image]="backgroundImage ? 'url(' + backgroundImage + ')' : 'none'">
       <!-- Background music continues from quiz -->
       <audio #backgroundMusic [src]="musicSrc" loop autoplay *ngIf="musicSrc && musicPlaying" (loadeddata)="playMusic()"></audio>
 
-      <div class="content fade-in">
-        <div class="love-letter">
-          <h1 class="romantic-text title">Happy Valentine's Day, Babu ❤️</h1>
-          
-          <div class="letter-content">
-            <p class="letter-text final-reveal-text">
-              Every memory here is real.<br>
-              Every feeling is true.
-            </p>
-            
-            <p class="letter-text final-reveal-text">
-              And if I had to choose again…<br>
-              I'd still choose you.<br>
-              Always.
-            </p>
-            
-            <p class="romantic-text closing">
-              Forever yours,<br>
-              <span class="signature">Your Valentine 💕</span>
-            </p>
-          </div>
-        </div>
-      </div>
+      <!-- Background gradient overlay -->
+      <div class="background-overlay"></div>
+      
+      <!-- Vignette effect -->
+      <div class="vignette"></div>
 
-      <!-- SVG Heart Shape Definition (hidden) -->
-      <svg width="0" height="0" style="position: absolute;">
-        <defs>
-          <clipPath id="heart-shape" clipPathUnits="objectBoundingBox">
-            <path d="M0.5,0.33 C0.5,0.33 0.61,0.55 0.98,0.55 C0.98,0.55 0.68,0.89 0.5,1 C0.32,0.89 0.02,0.55 0.02,0.55 C0.39,0.55 0.5,0.33 0.5,0.33 Z"/>
-          </clipPath>
-        </defs>
-      </svg>
-
-      <!-- Falling Images & Hearts Rain Effect -->
-      <div class="falling-images-container">
-        <!-- Falling Images (heart-shaped) -->
-        <img *ngFor="let image of fallingImages" 
-             [src]="image.src"
-             [alt]="'Memory ' + image.id"
-             class="falling-image heart-shaped-image" 
-             [style.left.%]="image.left"
-             [style.animation-delay.s]="image.delay"
-             [style.width.px]="image.size"
-             [style.height.px]="image.size"
-             [style.animation-duration.s]="image.duration">
-        
-        <!-- Falling Heart Emojis -->
-        <span *ngFor="let heart of fallingHearts"
-              class="falling-heart-emoji"
+      <!-- Minimal floating hearts -->
+      <div class="floating-hearts">
+        <span *ngFor="let heart of floatingHearts"
+              class="floating-heart"
               [style.left.%]="heart.left"
+              [style.top.%]="heart.top"
               [style.animation-delay.s]="heart.delay"
               [style.animation-duration.s]="heart.duration"
               [style.font-size.px]="heart.size">
           {{ heart.emoji }}
         </span>
       </div>
+
+      <!-- Falling memory photos (rain effect) -->
+      <div class="floating-photos">
+        <div *ngFor="let photo of floatingPhotos" 
+             class="photo-frame"
+             [style.left.%]="photo.left"
+             [style.top.%]="photo.top"
+             [style.animation-delay.s]="photo.delay"
+             [style.animation-duration.s]="photo.floatDuration"
+             [style.width.px]="photo.size"
+             [style.height.px]="photo.size">
+          <img [src]="photo.src" 
+               [alt]="'Memory ' + photo.id">
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="content-wrapper">
+        <div class="love-letter-card" [@fadeIn]>
+          <h1 class="title">My Love, Happy Valentine's Day ❤️</h1>
+          
+          <div class="letter-content">
+            <p class="letter-text">
+              You are the most loving and cutest soul I have ever met. Before you, I didn't even know I needed healing… but you came into my life and quietly fixed parts of me I didn't even understand.
+            </p>
+            
+            <p class="letter-text highlight-text">
+              You didn't just love me — you cured me. You gave me peace, strength, and a reason to smile without forcing it.
+            </p>
+            
+            <p class="letter-text">
+              Your heart is soft, your soul is pure, and your love feels like home. I love you more than words can ever explain. And no matter what happens in life, I promise I will always choose you — the same way you chose me.
+            </p>
+            
+            <p class="letter-text closing">
+              Happy Valentine's Day, my beautiful girl. 💕
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     .container {
       position: relative;
       overflow: hidden;
       min-height: 100vh;
+      width: 100%;
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
-      /* Overlay for better text readability */
-      background-blend-mode: overlay;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
     }
 
+    /* Blurred background effect */
     .container::before {
       content: '';
       position: absolute;
@@ -90,101 +111,212 @@ import heic2any from 'heic2any';
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, rgba(255, 224, 236, 0.7) 0%, rgba(255, 192, 217, 0.7) 50%, rgba(255, 158, 197, 0.7) 100%);
+      background: inherit;
+      filter: blur(20px) brightness(0.9);
+      transform: scale(1.1);
       z-index: 0;
+    }
+
+    .background-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 182, 193, 0.4) 0%,
+        rgba(255, 192, 203, 0.5) 25%,
+        rgba(255, 160, 180, 0.45) 50%,
+        rgba(255, 182, 193, 0.4) 75%,
+        rgba(255, 192, 203, 0.5) 100%
+      );
+      z-index: 1;
       pointer-events: none;
     }
 
-    .content {
-      max-width: 700px;
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
+      height: 100%;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 60%,
+        rgba(0, 0, 0, 0.15) 100%
+      );
       z-index: 2;
+      pointer-events: none;
+    }
+
+    .content-wrapper {
       position: relative;
-      animation: contentFadeIn 1.2s ease-out;
-      padding: 40px 20px;
+      z-index: 10;
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    @keyframes contentFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    .love-letter {
-      background: rgba(255, 255, 255, 0.98);
-      border-radius: 30px;
-      padding: 50px;
-      box-shadow: 0 25px 70px rgba(255, 77, 122, 0.4);
-      backdrop-filter: blur(15px);
-      border: 2px solid rgba(255, 107, 157, 0.2);
-      animation: letterFloat 3s ease-in-out infinite;
+    .love-letter-card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 32px;
+      padding: 60px 50px;
+      box-shadow: 
+        0 8px 32px rgba(255, 105, 135, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       position: relative;
-      overflow: hidden;
+      width: 100%;
+      animation: fadeInUp 1.2s ease-out;
     }
 
-    .love-letter::before {
+    .love-letter-card::before {
       content: '';
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 107, 157, 0.1) 1px, transparent 1px);
-      background-size: 30px 30px;
-      animation: sparkle 20s linear infinite;
-      pointer-events: none;
-    }
-
-    @keyframes letterFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-
-    @keyframes sparkle {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 182, 193, 0.3),
+        rgba(255, 192, 203, 0.2),
+        rgba(255, 160, 180, 0.3)
+      );
+      border-radius: 32px;
+      z-index: -1;
+      opacity: 0.6;
+      filter: blur(20px);
     }
 
     .title {
-      font-size: 48px;
-      color: var(--primary-red);
-      text-align: center;
-      margin-bottom: 35px;
+      font-family: 'Playfair Display', 'Great Vibes', serif;
+      font-size: 56px;
       font-weight: 700;
-      text-shadow: 0 2px 15px rgba(255, 107, 157, 0.4);
-      animation: titlePulse 3s ease-in-out infinite;
+      text-align: center;
+      margin-bottom: 40px;
+      background: linear-gradient(
+        135deg,
+        #d63384 0%,
+        #ff6b9d 30%,
+        #ff8fab 60%,
+        #ffb3c1 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
       position: relative;
-      z-index: 1;
     }
 
-    @keyframes titlePulse {
-      0%, 100% {
-        transform: scale(1);
-        text-shadow: 0 2px 15px rgba(255, 107, 157, 0.4);
-      }
-      50% {
-        transform: scale(1.02);
-        text-shadow: 0 4px 25px rgba(255, 107, 157, 0.6);
-      }
-    }
 
     .letter-content {
-      text-align: left;
-      line-height: 1.9;
+      text-align: center;
+      line-height: 2;
       position: relative;
-      z-index: 1;
-      animation: contentReveal 1.5s ease-out 0.3s both;
     }
 
-    @keyframes contentReveal {
+    .letter-text {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: rgba(75, 45, 42, 0.9);
+      margin: 25px 0;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .highlight-text {
+      font-size: 22px;
+      font-weight: 600;
+      color: #c7356f;
+      margin: 35px 0;
+      text-shadow: 0 2px 10px rgba(255, 182, 193, 0.3);
+    }
+
+    .closing {
+      font-family: 'Great Vibes', 'Playfair Display', cursive;
+      font-size: 24px;
+      color: #d63384;
+      margin-top: 50px;
+      text-align: center;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .signature {
+      display: block;
+      margin-top: 15px;
+      font-size: 20px;
+      font-style: italic;
+      color: #d63384;
+      font-weight: 500;
+    }
+
+    /* Floating Photos */
+    .floating-photos {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    .photo-frame {
+      position: absolute;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 
+        0 8px 24px rgba(255, 105, 135, 0.3),
+        0 0 0 2px rgba(255, 182, 193, 0.2),
+        inset 0 0 20px rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.1);
+      animation: fallPhoto linear forwards;
+    }
+
+    .photo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    /* Minimal Floating Hearts */
+    .floating-hearts {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+      overflow: hidden;
+    }
+
+    .floating-heart {
+      position: absolute;
+      opacity: 0.4;
+      animation: floatHeart 12s ease-in-out infinite;
+      filter: drop-shadow(0 2px 8px rgba(255, 105, 135, 0.2));
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
       }
       to {
         opacity: 1;
@@ -192,178 +324,87 @@ import heic2any from 'heic2any';
       }
     }
 
-    .letter-text {
-      font-size: 19px;
-      color: var(--text-dark);
-      margin: 25px 0;
-      text-align: justify;
-      animation: textFadeIn 1s ease-out both;
-    }
-
-    .letter-text:nth-child(1) { animation-delay: 0.5s; }
-    .letter-text:nth-child(2) { animation-delay: 0.8s; }
-
-    @keyframes textFadeIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
-      }
-      to {
+    @keyframes fallPhoto {
+      0% {
+        transform: translateY(0) translateX(0);
         opacity: 1;
-        transform: translateX(0);
+      }
+      100% {
+        transform: translateY(110vh) translateX(20px);
+        opacity: 0.8;
       }
     }
 
-    .final-reveal-text {
-      font-size: 24px;
-      color: var(--primary-red);
-      text-align: center;
-      font-weight: 600;
-      line-height: 2.2;
-      margin: 35px 0;
-      text-shadow: 0 1px 5px rgba(255, 107, 157, 0.3);
-      animation: revealTextGlow 4s ease-in-out infinite;
-      position: relative;
-    }
-
-    @keyframes revealTextGlow {
+    @keyframes floatHeart {
       0%, 100% {
-        text-shadow: 0 1px 5px rgba(255, 107, 157, 0.3);
+        transform: translateY(0) translateX(0) scale(1);
+        opacity: 0.3;
       }
       50% {
-        text-shadow: 0 2px 10px rgba(255, 107, 157, 0.5);
+        transform: translateY(-30px) translateX(15px) scale(1.1);
+        opacity: 0.5;
       }
-    }
-
-    .closing {
-      font-size: 26px;
-      color: var(--primary-red);
-      margin-top: 40px;
-      text-align: right;
-      font-weight: 600;
-      animation: closingFadeIn 1s ease-out 1.2s both;
-      position: relative;
-    }
-
-    @keyframes closingFadeIn {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .signature {
-      display: block;
-      margin-top: 10px;
-      font-size: 20px;
-    }
-
-    .falling-images-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-      overflow: hidden;
     }
 
     /* Fallback gradient if no background image */
     .container:not([style*="background-image"]) {
-      background: linear-gradient(135deg, #ffe0ec 0%, #ffc0d9 50%, #ff9ec5 100%);
+      background: linear-gradient(
+        135deg,
+        #ffb6c1 0%,
+        #ffc0cb 25%,
+        #ffb3c1 50%,
+        #ffc0cb 75%,
+        #ffb6c1 100%
+      );
     }
 
-    .falling-image {
-      position: absolute;
-      object-fit: cover;
-      box-shadow: 0 6px 20px rgba(255, 77, 122, 0.5);
-      animation: imageFall 5s ease-out forwards;
-      border: 3px solid rgba(255, 255, 255, 0.95);
-      transition: transform 0.3s ease;
-    }
-
-    .falling-image:hover {
-      transform: scale(1.1) !important;
-      z-index: 10;
-    }
-
-    .heart-shaped-image {
-      border-radius: 50%;
-      object-fit: cover;
-      background: transparent;
-      border: 4px solid rgba(255, 255, 255, 0.95);
-      box-shadow: 0 0 20px rgba(255, 107, 157, 0.4);
-    }
-
-    .falling-heart-emoji {
-      position: absolute;
-      animation: heartFall 4s ease-out forwards;
-      pointer-events: none;
-      filter: drop-shadow(0 3px 10px rgba(255, 77, 122, 0.5));
-      user-select: none;
-      -webkit-user-select: none;
-      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes imageFall {
-      0% {
-        transform: translateY(-100vh) rotate(0deg) scale(0.6);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 1;
-        transform: translateY(50vh) rotate(360deg) scale(1);
-      }
-      100% {
-        transform: translateY(100vh) rotate(720deg) scale(0.9);
-        opacity: 0;
-      }
-    }
-
-    @keyframes heartFall {
-      0% {
-        transform: translateY(-100vh) rotate(0deg) scale(0.7);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 1;
-        transform: translateY(50vh) rotate(180deg) scale(1.1);
-      }
-      100% {
-        transform: translateY(100vh) rotate(360deg) scale(1.3);
-        opacity: 0;
-      }
-    }
-
+    /* Responsive Design */
     @media (max-width: 768px) {
-      .love-letter {
-        padding: 25px;
+      .love-letter-card {
+        padding: 40px 30px;
+        border-radius: 24px;
       }
 
       .title {
-        font-size: 32px;
+        font-size: 42px;
+        margin-bottom: 30px;
+      }
+
+      .letter-text {
+        font-size: 18px;
+        margin: 25px 0;
+      }
+
+      .highlight-text {
+        font-size: 22px;
+        margin: 35px 0;
+      }
+
+      .closing {
+        font-size: 20px;
+        margin-top: 40px;
+      }
+
+      .photo-frame {
+        border-width: 3px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .love-letter-card {
+        padding: 30px 20px;
+        border-radius: 20px;
+      }
+
+      .title {
+        font-size: 36px;
       }
 
       .letter-text {
         font-size: 16px;
       }
 
-      .final-reveal-text {
-        font-size: 20px;
-      }
-
-      .closing {
+      .highlight-text {
         font-size: 20px;
       }
     }
@@ -376,19 +417,24 @@ export class RevealComponent implements OnInit {
   musicPlaying = false;
   
   // Background image - add your image to src/assets/images/background/
-  backgroundImage: string | null = '/assets/images/background/background.png'; // Set to null to use gradient instead
-  fallingImages: Array<{ 
-    src: string; 
-    left: number; 
-    delay: number; 
+  backgroundImage: string | null = '/assets/images/background/IMG_4279.jpeg'; // Set to null to use gradient instead
+  
+  // Floating photos around the card
+  floatingPhotos: Array<{
+    src: string;
+    left: number;
+    top: number;
+    delay: number;
     size: number;
-    duration: number;
+    floatDuration: number;
     id: number;
   }> = [];
 
-  fallingHearts: Array<{
+  // Minimal floating hearts
+  floatingHearts: Array<{
     emoji: string;
     left: number;
+    top: number;
     delay: number;
     size: number;
     duration: number;
@@ -397,47 +443,69 @@ export class RevealComponent implements OnInit {
 
   /**
    * 📸 Your memory images - already configured!
+   * HEIC images removed as they don't display properly on the web
    */
   private imageFiles: string[] = [
+    '050A3908-5035-4CA3-8036-EDF4DD8C3D7D.PNG',
+    '06A898AB-364E-4A47-BD98-7794F996A422.PNG',
+    '0a8cdb4e-15d8-4c90-9f43-e87de80937b2.jpg',
+    '28F3E268-16D5-4A3B-923F-87472515E318.PNG',
     '5a4ab691-c3cf-4b91-8d81-cb53fb66587e.JPG',
-    '87a13fa3-b347-4d4a-8e61-d1f0a3248056.JPG',
-    'f5bc5703-19db-4f26-af90-e3568fd51497.JPG',
-    'IMG_1763.HEIC',
-    'IMG_1829.heic',
-    'IMG_1833.heic',
-    'IMG_2069.heic',
-    'IMG_2681.heic',
-    'IMG_2743.heic',
-    'IMG_2747.heic',
-    'IMG_3125.HEIC',
-    'IMG_3651.heic',
-    'IMG_3928.heic',
-    'IMG_3996.heic',
-    'IMG_3998.heic',
-    'IMG_4025.heic',
-    'IMG_4278.heic',
-    'IMG_4281.heic',
-    'IMG_4917.heic',
-    'IMG_4918.heic',
-    'IMG_4924.heic',
-    'IMG_5007.heic',
-    'IMG_5493.HEIC',
-    'IMG_5867.HEIC',
+    '6fd8b943-09c2-41f5-bb17-684b66d350e4.JPG',
+    '9B2D40D0-2ED8-4FFE-9EDE-C9FEBF5463E6.PNG',
+    'b66c8b3e-55ca-4162-913a-486f30ec28ef.JPG',
+    'ce7c7b2d-3ed1-46d1-b760-c3563633a99f.JPG',
+    'F430DF4E-F67A-42FE-A2DF-C9DC24BDDC3C.PNG',
+    'feaa579b-f848-4b88-bb60-6d3bb13d5b03.jpg',
+    'IMG_1781.JPG',
+    'IMG_1829.jpeg',
+    'IMG_2072.jpeg',
+    'IMG_2684.jpeg',
+    'IMG_2741.jpeg',
+    'IMG_2743.jpeg',
+    'IMG_3122.jpeg',
+    'IMG_3651.jpeg',
+    'IMG_3663.jpeg',
+    'IMG_3666.jpeg',
+    'IMG_3839.jpeg',
+    'IMG_3923.jpeg',
+    'IMG_3924.jpeg',
+    'IMG_3934.jpeg',
+    'IMG_3993.jpeg',
+    'IMG_3998.jpeg',
+    'IMG_4025.jpeg',
+    'IMG_4278.jpeg',
+    'IMG_4279.jpeg',
+    'IMG_4283.jpeg',
+    'IMG_4309.jpeg',
+    'IMG_4898.jpeg',
+    'IMG_4917.jpeg',
+    'IMG_5007.jpeg',
+    'IMG_5258.jpeg',
+    'IMG_5490.jpeg',
+    'IMG_5820.jpg',
+    'IMG_5833.jpeg',
+    'IMG_5867.jpeg',
     'IMG_6126.jpg',
-    'IMG_6198.heic',
-    'IMG_6229.heic',
-    'IMG_6231.heic',
-    'IMG_6234.heic',
-    'IMG_6819.heic',
-    'IMG_6926.jpg'
+    'IMG_6198.jpeg',
+    'IMG_6230.jpeg',
+    'IMG_6234.jpeg',
+    'IMG_6235.jpeg',
+    'IMG_6299.jpeg',
+    'IMG_6305.jpeg',
+    'IMG_6627.jpeg',
+    'IMG_6819.jpeg',
+    'IMG_6836.jpeg',
+    'IMG_6890.jpeg',
+    'IMG_6987.jpeg'
   ];
 
   // Cache for converted HEIC images
   private heicCache: Map<string, string> = new Map();
 
   ngOnInit() {
-    this.startFallingImages();
-    this.startFallingHearts();
+    this.initializeFloatingPhotos();
+    this.startMinimalHearts();
     
     // Check if music was playing from previous pages (stored in sessionStorage)
     const wasPlaying = sessionStorage.getItem('musicPlaying') === 'true';
@@ -464,48 +532,87 @@ export class RevealComponent implements OnInit {
     }
   }
 
-  startFallingImages() {
-    // Create initial falling images
-    this.createFallingImage().catch(err => console.error('Error creating falling image:', err));
+  async initializeFloatingPhotos() {
+    // Create initial falling photos (rain effect)
+    const initialCount = 100;
     
-    // Continuously create new falling images
-    setInterval(() => {
-      this.createFallingImage().catch(err => console.error('Error creating falling image:', err));
-    }, 2000);
+    for (let i = 0; i < initialCount; i++) {
+      await this.createFallingPhoto(i * 0.8); // Stagger the start times
+    }
+    
+    // Continuously add new falling photos to create rain effect
+    setInterval(async () => {
+      if (this.floatingPhotos.length < 15) {
+        await this.createFallingPhoto(0);
+      }
+    }, 1); // Add a new photo every 0.8 seconds
   }
 
-  startFallingHearts() {
-    // Create initial falling hearts
-    this.createFallingHeart();
-    
-    // Continuously create new falling hearts
-    setInterval(() => {
-      this.createFallingHeart();
-    }, 800);
-  }
-
-  async createFallingImage() {
+  async createFallingPhoto(delay: number = 0) {
     const randomImage = await this.getRandomImage();
-    const size = 100 + Math.random() * 60; // Random size between 100-160px (larger!)
+    const size = 100 + Math.random() * 60; // 100-160px
+    const left = 5 + Math.random() * 90; // Random horizontal position
+    const fallDuration = 8 + Math.random() * 4; // 8-12 seconds to fall
     
-    this.fallingImages.push({
+    const photoId = Date.now() + Math.random();
+    
+    this.floatingPhotos.push({
       src: randomImage,
+      left: left,
+      top: -10, // Start above the viewport
+      delay: delay,
+      size: size,
+      floatDuration: fallDuration,
+      id: photoId
+    });
+    
+    // Remove photo after it falls off screen
+    setTimeout(() => {
+      this.floatingPhotos = this.floatingPhotos.filter(p => p.id !== photoId);
+    }, (fallDuration + delay) * 1000 + 1000);
+  }
+
+  startMinimalHearts() {
+    // Create very minimal floating hearts (only 3-5 at a time)
+    const initialHearts = 4;
+    for (let i = 0; i < initialHearts; i++) {
+      setTimeout(() => {
+        this.createFloatingHeart();
+      }, i * 2000);
+    }
+    
+    // Occasionally add new hearts (every 8-12 seconds)
+    setInterval(() => {
+      if (this.floatingHearts.length < 5) {
+        this.createFloatingHeart();
+      }
+    }, 10000);
+  }
+
+  createFloatingHeart() {
+    const heartEmojis = ['❤️', '💕'];
+    const randomEmoji = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+    const size = 20 + Math.random() * 15; // 20-35px (smaller, minimal)
+    
+    this.floatingHearts.push({
+      emoji: randomEmoji,
       left: Math.random() * 100,
+      top: Math.random() * 100,
       delay: Math.random() * 2,
       size: size,
-      duration: 4 + Math.random() * 2, // 4-6 seconds
+      duration: 12 + Math.random() * 4, // 12-16 seconds
       id: Date.now() + Math.random()
     });
 
-    // Remove old images after animation (keep max 30 on screen)
-    if (this.fallingImages.length > 30) {
-      this.fallingImages = this.fallingImages.slice(-20);
+    // Keep only 5 hearts max
+    if (this.floatingHearts.length > 5) {
+      this.floatingHearts = this.floatingHearts.slice(-4);
     }
 
-    // Clean up after animation completes
+    // Clean up after animation
     setTimeout(() => {
-      this.fallingImages = this.fallingImages.filter(img => img.id !== this.fallingImages[0]?.id);
-    }, 6000);
+      this.floatingHearts = this.floatingHearts.filter(heart => heart.id !== this.floatingHearts[0]?.id);
+    }, 18000);
   }
 
   async getRandomImage(): Promise<string> {
@@ -554,28 +661,4 @@ export class RevealComponent implements OnInit {
     return filePath;
   }
 
-  createFallingHeart() {
-    const heartEmojis = ['❤️', '💕', '💖', '💗', '💝', '💘', '💞', '💓'];
-    const randomEmoji = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
-    const size = 30 + Math.random() * 25; // Random size between 30-55px
-    
-    this.fallingHearts.push({
-      emoji: randomEmoji,
-      left: Math.random() * 100,
-      delay: Math.random() * 2,
-      size: size,
-      duration: 3 + Math.random() * 2, // 3-5 seconds
-      id: Date.now() + Math.random()
-    });
-
-    // Remove old hearts after animation (keep max 40 on screen)
-    if (this.fallingHearts.length > 40) {
-      this.fallingHearts = this.fallingHearts.slice(-30);
-    }
-
-    // Clean up after animation completes
-    setTimeout(() => {
-      this.fallingHearts = this.fallingHearts.filter(heart => heart.id !== this.fallingHearts[0]?.id);
-    }, 6000);
-  }
 }
