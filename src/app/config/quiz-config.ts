@@ -8,10 +8,11 @@ export interface QuestionConfig {
   question: string;
   type: 'mcq' | 'fill-blank' | 'open-ended' | 'rating-scale';
   options?: string[];
-  correctAnswer?: string; // For MCQ and fill-blank
+  correctAnswer?: string; // For MCQ and fill-blank (use 'all' to make all answers correct)
   romanticMessage: string;
   triggerMusic?: boolean; // For song question
   ratingMessages?: { [key: number]: string }; // For rating scale
+  answerMessages?: { [key: string]: string }; // Custom messages for each answer option
 }
 
 export interface QuizConfig {
@@ -25,9 +26,9 @@ export const QUIZ_CONFIG: QuizConfig = {
       type: 'mcq',
       options: [
         'Ehema Baluwama Mage Diha',
-        'Random TikTok song',
-        'Elevator music 😅',
-        'A song I skip'
+        'Mata Denna Lobai',
+        'Keheralle',
+        'Wassak Wela'
       ],
       correctAnswer: 'Ehema Baluwama Mage Diha',
       romanticMessage: 'Yes… ❤️\nThis song feels incomplete without you.',
@@ -50,9 +51,9 @@ export const QUIZ_CONFIG: QuizConfig = {
       type: 'mcq',
       options: [
         'The Gallery Cafe',
-        'Somewhere awkward 😅',
-        'Still loading…',
-        'In a movie scene 😉'
+        'CCC Mall Movie Hall',
+        'Dilmah Tea Longue',
+        'Mount Lavinia Beach'
       ],
       correctAnswer: 'The Gallery Cafe',
       romanticMessage: 'That moment still lives in my heart ❤️'
@@ -68,7 +69,7 @@ export const QUIZ_CONFIG: QuizConfig = {
       type: 'mcq',
       options: [
         'Badam Doodh',
-        'Random café',
+        'Ravira café',
         'Anywhere with you',
         'Wherever we talk too much 😄'
       ],
@@ -96,8 +97,15 @@ export const QUIZ_CONFIG: QuizConfig = {
         '😂 Three… chaos but cute',
         '🤭 However many you want'
       ],
-      correctAnswer: '😍 Two… one like you, one like me',
-      romanticMessage: 'That future sounds perfect with you 🥹'
+      correctAnswer: 'all', // Special flag - all answers are correct
+      romanticMessage: 'That future sounds perfect with you 🥹',
+      // Custom messages for each answer option
+      answerMessages: {
+        '😌 One… so we can spoil them': 'One perfect little human to spoil rotten together! 🥹💕\nWe\'ll be the coolest parents ever!',
+        '😍 Two… one like you, one like me': 'Two little ones… one with your smile, one with my chaos 😂\nThat future sounds absolutely perfect with you 🥹❤️',
+        '😂 Three… chaos but cute': 'Three kids? 😅\nOkay, chaos it is! But with you, even chaos sounds like the best adventure 💕\nLet\'s do this!',
+        '🤭 However many you want': 'However many you want? 🥹\nYou\'re so sweet! But let\'s start with one and see how we survive 😂\nThen we\'ll decide on the rest together 💕'
+      }
     },
     {
       question: 'How much do you love me?',

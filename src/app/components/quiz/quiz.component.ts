@@ -159,8 +159,15 @@ import { QUIZ_CONFIG, QuestionConfig } from '../../config/quiz-config';
 
       <div *ngIf="allQuestionsAnswered" class="completion-message fade-in">
         <h2 class="romantic-text">You remembered everything! 🥹❤️</h2>
-        <button class="romantic-button" (click)="proceedToFinal()">
-          Continue 💖
+        <p class="sub-text">You're amazing! 💕</p>
+        <p class="sub-text" style="font-size: 16px; margin-top: 20px;">
+          Send me your answers? 📧
+        </p>
+        <button class="romantic-button" (click)="sendAnswersByEmail()" style="margin-bottom: 15px;">
+          Send Answers via Email 📧
+        </button>
+        <button class="romantic-button skip-button" (click)="proceedToFinal()">
+          Skip & Continue 💖
         </button>
       </div>
     </div>
@@ -183,6 +190,10 @@ export class QuizComponent implements OnInit {
   showRandomPopup = false;
   musicSrc = '';
   musicPlaying = false;
+  
+  // Track all answers for email
+  allAnswers: Array<{ question: string; answer: string }> = [];
+  emailSending = false;
 
   get currentQuestion(): QuestionConfig {
     return this.questions[this.currentQuestionIndex];
@@ -194,6 +205,7 @@ export class QuizComponent implements OnInit {
 
   ngOnInit() {
     this.loadCustomAnswers();
+    this.shuffleAllMCQOptions();
     this.scheduleRandomPopup();
   }
 
@@ -212,6 +224,38 @@ export class QuizComponent implements OnInit {
         console.warn('Could not parse saved answers');
       }
     }
+  }
+
+  shuffleAllMCQOptions() {
+    // Shuffle options for all MCQ questions except question 1 (song question)
+    this.questions.forEach((question, index) => {
+      // Skip question 1 (index 0) - keep it in original order
+      if (index > 0 && question.type === 'mcq' && question.options && question.correctAnswer) {
+        this.shuffleMCQOptions(question);
+      }
+    });
+  }
+
+  shuffleMCQOptions(question: QuestionConfig) {
+    if (!question.options || !question.correctAnswer) return;
+
+    // Store the correct answer text
+    const correctAnswerText = question.correctAnswer;
+
+    // Create a copy of options with their indices
+    const optionsWithIndex = question.options.map((option, index) => ({ option, originalIndex: index }));
+
+    // Shuffle using Fisher-Yates algorithm
+    for (let i = optionsWithIndex.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [optionsWithIndex[i], optionsWithIndex[j]] = [optionsWithIndex[j], optionsWithIndex[i]];
+    }
+
+    // Update the options array with shuffled order
+    question.options = optionsWithIndex.map(item => item.option);
+
+    // The correctAnswer stays the same (text comparison), so no need to update it
+    // The checkAnswer function compares by text, not index, so it will still work
   }
 
   scheduleRandomPopup() {
@@ -266,13 +310,24 @@ export class QuizComponent implements OnInit {
   checkAnswer() {
     const question = this.currentQuestion;
     let isCorrect = false;
+    let answerText = '';
 
     if (question.type === 'mcq') {
       if (this.selectedOption === null) return;
       const selectedAnswer = question.options![this.selectedOption];
-      isCorrect = selectedAnswer.toLowerCase().trim() === question.correctAnswer!.toLowerCase().trim();
+      answerText = selectedAnswer;
+      // For question 1 (song question with triggerMusic), all answers are correct
+      if (question.triggerMusic) {
+        isCorrect = true;
+      } else if (question.correctAnswer === 'all') {
+        // Special case: all answers are correct
+        isCorrect = true;
+      } else {
+        isCorrect = selectedAnswer.toLowerCase().trim() === question.correctAnswer!.toLowerCase().trim();
+      }
     } else if (question.type === 'fill-blank') {
       if (!this.userAnswer.trim()) return;
+      answerText = this.userAnswer.trim();
       const userAnswerLower = this.userAnswer.toLowerCase().trim();
       const correctAnswerLower = question.correctAnswer!.toLowerCase().trim();
       
@@ -294,16 +349,24 @@ export class QuizComponent implements OnInit {
         (keyWords.length > 1 && keyWords.every(word => word.length > 2 && userAnswerNormalized.includes(word)));
     } else if (question.type === 'rating-scale') {
       if (this.selectedRating === null) return;
+      answerText = `${this.selectedRating}/10`;
       // Rating scale: always correct, but message depends on rating
       isCorrect = true;
     } else if (question.type === 'open-ended') {
       // Open-ended: always correct, just needs an answer
       if (!this.userAnswer.trim()) return;
+      answerText = this.userAnswer.trim();
       isCorrect = true;
     }
 
     this.isCorrect = isCorrect;
     this.showMessage = true;
+
+    // Trigger music if this is the song question (question 1) - play for ANY selection
+    if (question.triggerMusic && !this.musicPlaying && question.type === 'mcq' && this.selectedOption !== null) {
+      // Get the selected option index to determine which song to play
+      this.startMusic(this.selectedOption);
+    }
 
     if (isCorrect || question.type === 'open-ended' || question.type === 'rating-scale') {
       this.correctAnswers++;
@@ -315,15 +378,17 @@ export class QuizComponent implements OnInit {
         } else {
           this.message = question.romanticMessage;
         }
+      } else if (question.type === 'mcq' && question.answerMessages && answerText) {
+        // Get custom message for the selected answer
+        if (question.answerMessages[answerText]) {
+          this.message = question.answerMessages[answerText];
+        } else {
+          this.message = question.romanticMessage;
+        }
       } else {
         this.message = question.romanticMessage;
       }
       this.justAnswered = true;
-
-      // Trigger music if this is the song question
-      if (question.triggerMusic && !this.musicPlaying) {
-        this.startMusic();
-      }
 
       setTimeout(() => {
         this.justAnswered = false;
@@ -339,9 +404,25 @@ export class QuizComponent implements OnInit {
     }
   }
 
-  startMusic() {
-    // Set the song file path
-    this.musicSrc = '/assets/music/sinhanada.net-Ehema-Baluwama-Yasas-Medagedara.mp3';
+  startMusic(selectedOptionIndex: number | null = null) {
+    // Map option index to song file
+    // Option 0: Ehema Baluwama Mage Diha → Song1.mp3
+    // Option 1: Mata Denna Lobai → song2.mp3
+    // Option 2: Keheralle → Song3.mp3
+    // Option 3: Wassak Wela → Song4.mp3
+    const songMap: { [key: number]: string } = {
+      0: '/assets/music/Song1.mp3',
+      1: '/assets/music/song2.mp3',
+      2: '/assets/music/Song3.mp3',
+      3: '/assets/music/Song4.mp3'
+    };
+    
+    // Default to Song1 if no option selected or invalid index
+    const songPath = selectedOptionIndex !== null && songMap[selectedOptionIndex] 
+      ? songMap[selectedOptionIndex] 
+      : songMap[0];
+    
+    this.musicSrc = songPath;
     this.musicPlaying = true;
     // Save music state to sessionStorage so it continues on next page
     sessionStorage.setItem('musicPlaying', 'true');
@@ -378,6 +459,33 @@ export class QuizComponent implements OnInit {
   }
 
   moveToNextQuestion() {
+    // Save the current answer before moving to next question
+    const question = this.currentQuestion;
+    let answerText = '';
+    
+    if (question.type === 'mcq' && this.selectedOption !== null) {
+      answerText = question.options![this.selectedOption];
+    } else if (question.type === 'fill-blank' && this.userAnswer.trim()) {
+      answerText = this.userAnswer.trim();
+    } else if (question.type === 'rating-scale' && this.selectedRating !== null) {
+      answerText = `${this.selectedRating}/10`;
+    } else if (question.type === 'open-ended' && this.userAnswer.trim()) {
+      answerText = this.userAnswer.trim();
+    }
+    
+    // Save answer if we have one
+    if (answerText) {
+      const existingIndex = this.allAnswers.findIndex(a => a.question === question.question);
+      if (existingIndex >= 0) {
+        this.allAnswers[existingIndex].answer = answerText;
+      } else {
+        this.allAnswers.push({
+          question: question.question,
+          answer: answerText
+        });
+      }
+    }
+    
     if (this.currentQuestionIndex < this.questions.length - 1) {
       this.currentQuestionIndex++;
       this.selectedOption = null;
@@ -391,6 +499,25 @@ export class QuizComponent implements OnInit {
 
   proceedToFinal() {
     this.router.navigate(['/final-lock']);
+  }
+
+  sendAnswersByEmail() {
+    // Format answers for email
+    let answersText = 'Questionnaire Answers 💕\n\n';
+    answersText += `Date: ${new Date().toLocaleString()}\n\n`;
+    
+    this.allAnswers.forEach((item, index) => {
+      answersText += `${index + 1}. ${item.question}\n   Answer: ${item.answer}\n\n`;
+    });
+    
+    // Create mailto link
+    const recipient = 'kalanagayanga8@gmail.com';
+    const subject = encodeURIComponent('Questionnaire Answers 💕');
+    const body = encodeURIComponent(answersText);
+    const mailtoLink = `mailto:${recipient}?subject=${subject}&body=${body}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
   }
 
   constructor(private router: Router) {}

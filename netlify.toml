@@ -4,3 +4,14 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
+# Environment variables for EmailJS (set these in Netlify dashboard)
+# EMAILJS_PUBLIC_KEY = "your_public_key"
+# EMAILJS_SERVICE_ID = "your_service_id"
+# EMAILJS_TEMPLATE_ID = "your_template_id"
+
+# Redirects for SPA (Angular routing)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
