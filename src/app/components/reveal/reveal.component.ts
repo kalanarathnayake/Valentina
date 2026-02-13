@@ -1,5 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+// @ts-ignore - heic2any doesn't have TypeScript definitions
+import heic2any from 'heic2any';
 
 @Component({
   selector: 'app-reveal',
@@ -397,14 +399,41 @@ export class RevealComponent implements OnInit {
    * 📸 Your memory images - already configured!
    */
   private imageFiles: string[] = [
-    'Screenshot 2026-02-02 at 14.10.11.png',
-    'Screenshot 2026-02-02 at 14.19.41.png',
-    'Screenshot 2026-02-02 at 14.27.09.png',
-    'Screenshot 2026-02-02 at 14.31.36.png',
-    'Screenshot 2026-02-02 at 14.34.02.png',
-    'Screenshot 2026-02-02 at 14.36.09.png',
-    'Screenshot 2026-02-04 at 20.56.53.png'
+    '5a4ab691-c3cf-4b91-8d81-cb53fb66587e.JPG',
+    '87a13fa3-b347-4d4a-8e61-d1f0a3248056.JPG',
+    'f5bc5703-19db-4f26-af90-e3568fd51497.JPG',
+    'IMG_1763.HEIC',
+    'IMG_1829.heic',
+    'IMG_1833.heic',
+    'IMG_2069.heic',
+    'IMG_2681.heic',
+    'IMG_2743.heic',
+    'IMG_2747.heic',
+    'IMG_3125.HEIC',
+    'IMG_3651.heic',
+    'IMG_3928.heic',
+    'IMG_3996.heic',
+    'IMG_3998.heic',
+    'IMG_4025.heic',
+    'IMG_4278.heic',
+    'IMG_4281.heic',
+    'IMG_4917.heic',
+    'IMG_4918.heic',
+    'IMG_4924.heic',
+    'IMG_5007.heic',
+    'IMG_5493.HEIC',
+    'IMG_5867.HEIC',
+    'IMG_6126.jpg',
+    'IMG_6198.heic',
+    'IMG_6229.heic',
+    'IMG_6231.heic',
+    'IMG_6234.heic',
+    'IMG_6819.heic',
+    'IMG_6926.jpg'
   ];
+
+  // Cache for converted HEIC images
+  private heicCache: Map<string, string> = new Map();
 
   ngOnInit() {
     this.startFallingImages();
@@ -437,11 +466,11 @@ export class RevealComponent implements OnInit {
 
   startFallingImages() {
     // Create initial falling images
-    this.createFallingImage();
+    this.createFallingImage().catch(err => console.error('Error creating falling image:', err));
     
     // Continuously create new falling images
     setInterval(() => {
-      this.createFallingImage();
+      this.createFallingImage().catch(err => console.error('Error creating falling image:', err));
     }, 2000);
   }
 
@@ -455,8 +484,8 @@ export class RevealComponent implements OnInit {
     }, 800);
   }
 
-  createFallingImage() {
-    const randomImage = this.getRandomImage();
+  async createFallingImage() {
+    const randomImage = await this.getRandomImage();
     const size = 100 + Math.random() * 60; // Random size between 100-160px (larger!)
     
     this.fallingImages.push({
@@ -479,14 +508,50 @@ export class RevealComponent implements OnInit {
     }, 6000);
   }
 
-  getRandomImage(): string {
+  async getRandomImage(): Promise<string> {
     if (this.imageFiles.length === 0) {
       // Fallback: return a heart emoji as data URI
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDU2QzMyIDU2IDQ4IDQwIDQ4IDI4QzQ4IDIwIDQ0IDE2IDM4IDE2QzM0IDE2IDMyIDE4IDMyIDIwQzMyIDE4IDMwIDE2IDI2IDE2QzIwIDE2IDE2IDIwIDE2IDI4QzE2IDQwIDMyIDU2IDMyIDU2WiIgZmlsbD0iI2ZmNkI5RCIvPgo8L3N2Zz4K';
     }
     
     const randomFile = this.imageFiles[Math.floor(Math.random() * this.imageFiles.length)];
-    return `/assets/images/memories/${randomFile}`;
+    const filePath = `/assets/images/memories/${randomFile}`;
+    
+    // Check if it's a HEIC file
+    const isHeic = randomFile.toLowerCase().endsWith('.heic') || randomFile.toLowerCase().endsWith('.heif');
+    
+    if (isHeic) {
+      // Check cache first
+      if (this.heicCache.has(randomFile)) {
+        return this.heicCache.get(randomFile)!;
+      }
+      
+      // Convert HEIC to JPEG
+      try {
+        const response = await fetch(filePath);
+        const blob = await response.blob();
+        const convertedBlob = await heic2any({
+          blob: blob,
+          toType: 'image/jpeg',
+          quality: 0.8
+        });
+        
+        // heic2any can return an array or a single blob
+        const resultBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        const convertedUrl = URL.createObjectURL(resultBlob);
+        
+        // Cache the converted URL
+        this.heicCache.set(randomFile, convertedUrl);
+        
+        return convertedUrl;
+      } catch (error) {
+        console.error('Error converting HEIC file:', error);
+        // Fallback to heart emoji on error
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMyIDU2QzMyIDU2IDQ4IDQwIDQ4IDI4QzQ4IDIwIDQ0IDE2IDM4IDE2QzM0IDE2IDMyIDE4IDMyIDIwQzMyIDE4IDMwIDE2IDI2IDE2QzIwIDE2IDE2IDIwIDE2IDI4QzE2IDQwIDMyIDU2IDMyIDU2WiIgZmlsbD0iI2ZmNkI5RCIvPgo8L3N2Zz4K';
+      }
+    }
+    
+    return filePath;
   }
 
   createFallingHeart() {
